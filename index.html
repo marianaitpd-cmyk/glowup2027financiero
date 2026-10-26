@@ -466,9 +466,10 @@ a{color:var(--accent)}
         historial: S.historial.map(m => ({ role:m.role, content:m.content })), archivos: archivos || [] };
       let final = null;
       try {
-        await api(pedido, { timeout: conArchivos ? 180000 : 90000 });
+        const r0 = await api(pedido, { timeout: conArchivos ? 180000 : 90000 });
+        if (r0 && r0.listo) { if (r0.error) throw Object.assign(new Error(r0.mensaje || 'Tuve un tropiezo. ¿Me lo repites?'), { codigo: r0.error }); final = r0; }
       } catch (e) {
-        if (e.codigo === 'sesion_vencida') throw e;
+        if (e.codigo === 'sesion_vencida' || (e.codigo && e.codigo !== 'tiempo' && e.codigo !== 'red')) throw e;
         // la conexión se cortó o tardó: seguimos abajo recogiendo el resultado
       }
       const inicio = Date.now();
