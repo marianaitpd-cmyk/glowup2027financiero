@@ -459,8 +459,26 @@ a{color:var(--accent)}
     try {
       const conArchivos = !!(archivos && archivos.length);
       if (conArchivos) typingTexto('Leyendo tus estados de cuenta… puede tardar hasta un minuto');
-      const final = await api({ accion:'chat', token:S.token, nombre:S.nombre, tipo:S.tipo, estado: sinChips(S.estado),
-        historial: S.historial.map(m => ({ role:m.role, content:m.content })), archivos: archivos || [] }, { timeout: conArchivos ? 170000 : 70000 });
+      // Mandamos el pedido con un número; si la conexión larga se corta, la respuesta igual queda guardada
+      // en el Sheet y la recogemos con llamadas cortas.
+      const jobId = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2))).replace(/[^A-Za-z0-9_-]/g, '');
+      const pedido = { accion:'encargar', jobId, token:S.token, nombre:S.nombre, tipo:S.tipo, estado: sinChips(S.estado),
+        historial: S.historial.map(m => ({ role:m.role, content:m.content })), archivos: archivos || [] };
+      let final = null;
+      try {
+        await api(pedido, { timeout: conArchivos ? 180000 : 90000 });
+      } catch (e) {
+        if (e.codigo === 'sesion_vencida') throw e;
+        // la conexión se cortó o tardó: seguimos abajo recogiendo el resultado
+      }
+      const inicio = Date.now();
+      while (!final) {
+        let r; try { r = await api({ accion:'resultado', token:S.token, jobId }, { timeout: 30000 }); } catch (e) { if (e.codigo === 'sesion_vencida') throw e; r = null; }
+        if (r && r.listo) { if (r.error) throw Object.assign(new Error(r.mensaje || 'Tuve un tropiezo. ¿Me lo repites?'), { codigo: r.error }); final = r; break; }
+        if (Date.now() - inicio > 200000) throw new Error('La guía tardó demasiado. ¿Me lo repites, de preferencia con un archivo a la vez?');
+        if (conArchivos && Date.now() - inicio > 45000) typingTexto('Sigo leyendo… ya casi');
+        await new Promise(res => setTimeout(res, 2500));
+      }
       let texto = '';
       typing(false);
       const msgA = { role:'assistant', content: final.texto || texto || '…' };
@@ -523,7 +541,8 @@ a{color:var(--accent)}
     }
     // Por privacidad, tapamos cadenas largas de dígitos (cuentas, tarjetas, CLABE) antes de que salgan del navegador
     out = out.replace(/\b\d{10,20}\b/g, m => '****' + m.slice(-4)).replace(/\b(\d{4}[ -]){3}\d{4}\b/g, '**** **** **** ****');
-    if (out.replace(/[^a-záéíóú]/gi, '').length >= 80) return [{ name:file.name, kind:'texto', data: out.slice(0, 60000) }];
+    out = out.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n');
+    if (out.replace(/[^a-záéíóú]/gi, '').length >= 80) return [{ name:file.name, kind:'texto', data: out.slice(0, 25000) }];
     // Escaneado: páginas a imagen (máximo 4 por archivo)
     const imgs = [];
     for (let p = 1; p <= Math.min(pdf.numPages, 4); p++) {
