@@ -98,7 +98,7 @@ a{color:var(--accent)}
 .composer .fila{display:flex;gap:8px;align-items:center}
 .composer .input{border-radius:999px;padding:12px 16px}
 .composer .ico{flex:none;width:46px;height:46px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer}
-.composer .ico.ghost{background:var(--surface);color:var(--accent);border:1.5px solid var(--line)}
+.composer .ico.ghost{background:var(--surface);color:var(--muted);border:1.5px solid var(--line)}
 .composer .ico:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent)}
 .adjuntos{display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
 .adjuntos span{background:var(--soft);padding:4px 9px;border-radius:8px;display:inline-flex;gap:6px;align-items:center}
@@ -163,12 +163,12 @@ a{color:var(--accent)}
     <div class="stack">
       <p class="eyebrow" style="text-align:center">Lo que te espera adentro</p>
       <div class="pack">
-        <div><b>1</b>Presupuesto a tu medida</div>
+        <div><b>1</b>Presupuesto platicando</div>
         <div><b>2</b>Reto de ahorro 52 semanas</div>
         <div><b>3</b>Check-in cada día 1</div>
       </div>
     </div>
-    <p class="legal">Al entrar aceptas el <a href="aviso-privacidad.html">aviso de privacidad</a>. Tus estados de cuenta se leen y no se guardan.</p>
+    <p class="legal">Al entrar aceptas el <a href="aviso-privacidad.html">aviso de privacidad</a>. Tu presupuesto se arma platicando; no necesitas subir nada.</p>
   </section>
 
   <div id="app" hidden>
@@ -190,14 +190,14 @@ a{color:var(--accent)}
       <div>
         <p class="eyebrow">Presupuesto 2027</p>
         <h2>Tus categorías reales, <span class="script" style="font-size:30px">a tu medida</span></h2>
-        <p style="font-size:12.5px;color:var(--muted)" id="pres-sub">Se arma en la pestaña Guía con tus estados de cuenta. Toca un monto para ajustarlo.</p>
+        <p style="font-size:12.5px;color:var(--muted)" id="pres-sub">Se arma platicando en la pestaña Guía. Toca un monto para ajustarlo.</p>
       </div>
       <div class="sumstrip">
         <div><small>Ingreso</small><b class="num" id="s-ing">—</b></div>
         <div><small>Gastos 2027</small><b class="num" id="s-gas">—</b></div>
         <div><small>Libre al mes</small><b class="num" id="s-lib">—</b></div>
       </div>
-      <div class="card"><div id="budget"><p class="vacio">Todavía no hay presupuesto. Ve a la pestaña Guía y comparte tus estados de cuenta 💜</p></div></div>
+      <div class="card"><div id="budget"><p class="vacio">Todavía no hay presupuesto. Ve a la pestaña Guía y cuéntale a tu guía en qué se va tu dinero 💜</p></div></div>
       <div class="card" id="libre-card" hidden>
         <h3>Tu dinero libre</h3>
         <p class="meta" id="libre-txt"></p>
@@ -280,7 +280,7 @@ a{color:var(--accent)}
     <div class="composer inner" id="composer">
       <div class="adjuntos" id="adjuntos"></div>
       <div class="fila">
-        <button type="button" class="ico ghost" id="btn-adjuntar" aria-label="Adjuntar estados de cuenta" title="Adjuntar estados de cuenta (PDF o foto)">
+        <button type="button" class="ico ghost" id="btn-adjuntar" aria-label="Adjuntar un estado de cuenta (opcional)" title="Opcional: adjunta un estado de cuenta en PDF o foto para afinar tu presupuesto">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
         <input id="archivos" type="file" accept="application/pdf,image/*" multiple hidden>
@@ -448,7 +448,7 @@ a{color:var(--accent)}
     if (S.ocupado) return;
     texto = String(texto || '').trim();
     if (!texto && !(archivos && archivos.length)) return;
-    if (!texto) texto = 'Aquí están mis estados de cuenta.';
+    if (!texto) texto = 'Te comparto mi estado de cuenta para afinar mi presupuesto.';
     S.ocupado = true; $('#enviar').disabled = true;
     const viejo = $('#chips'); if (viejo) viejo.remove();
     const msgU = { role:'user', content:texto, oculto:!!opts.oculto, archivos:(archivos||[]).map(a => ({name:a.name})) };
@@ -458,7 +458,7 @@ a{color:var(--accent)}
     let bubble = null;
     try {
       const conArchivos = !!(archivos && archivos.length);
-      if (conArchivos) typingTexto('Leyendo tus estados de cuenta… puede tardar hasta un minuto');
+      if (conArchivos) typingTexto('Leyendo tu estado de cuenta… puede tardar hasta un minuto');
       // Mandamos el pedido con un número; si la conexión larga se corta, la respuesta igual queda guardada
       // en el Sheet y la recogemos con llamadas cortas.
       const jobId = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2))).replace(/[^A-Za-z0-9_-]/g, '');
@@ -482,7 +482,8 @@ a{color:var(--accent)}
       }
       let texto = '';
       typing(false);
-      const msgA = { role:'assistant', content: final.texto || texto || '…' };
+      if (!String(final.texto || '').trim()) throw new Error('Leí tus archivos pero se me trabó la respuesta. ¿Me los mandas otra vez? Si vuelve a pasar, sube uno a la vez 💜');
+      const msgA = { role:'assistant', content: final.texto };
       if (!bubble) bubble = burbuja('guia', '');
       bubble.innerHTML = md(msgA.content);
       S.historial.push(msgA);
@@ -520,7 +521,7 @@ a{color:var(--accent)}
       }
     }
     pintarAdjuntos();
-    if (S.adjuntos.length) { const adj = S.adjuntos; S.adjuntos = []; pintarAdjuntos(); enviar($('#entrada').value.trim() || 'Aquí están mis estados de cuenta.', adj); $('#entrada').value = ''; }
+    if (S.adjuntos.length) { const adj = S.adjuntos; S.adjuntos = []; pintarAdjuntos(); enviar($('#entrada').value.trim() || 'Te comparto mi estado de cuenta para afinar mi presupuesto.', adj); $('#entrada').value = ''; }
   });
   function pintarAdjuntos(){
     const box = $('#adjuntos'); box.innerHTML = '';
@@ -590,13 +591,13 @@ a{color:var(--accent)}
   const retoMes = () => Math.round(LEVELS[S.estado.nivel||2] / 12);
   function pintarPresupuesto(){
     const e = S.estado, box = $('#budget');
-    if (!e.presupuesto || !e.presupuesto.length) { box.innerHTML = '<p class="vacio">Todavía no hay presupuesto. Ve a la pestaña Guía y comparte tus estados de cuenta 💜</p>'; $('#libre-card').hidden = true; $('#btn-excel').hidden = true; $('#s-ing').textContent = '—'; $('#s-gas').textContent = '—'; $('#s-lib').textContent = '—'; return; }
+    if (!e.presupuesto || !e.presupuesto.length) { box.innerHTML = '<p class="vacio">Todavía no hay presupuesto. Ve a la pestaña Guía y cuéntale a tu guía en qué se va tu dinero 💜</p>'; $('#libre-card').hidden = true; $('#btn-excel').hidden = true; $('#s-ing').textContent = '—'; $('#s-gas').textContent = '—'; $('#s-lib').textContent = '—'; return; }
     box.innerHTML = '';
     const max = Math.max(1, ...e.presupuesto.map(r => Math.max(r.avg, r.plan)));
     e.presupuesto.forEach((r, i) => {
       const d = document.createElement('div'); d.className = 'brow';
       const diff = r.plan - r.avg;
-      d.innerHTML = `<div class="n">${esc(r.n)}<div class="avg">promedio real: <span class="num">${fmt(r.avg)}</span></div></div>
+      d.innerHTML = `<div class="n">${esc(r.n)}<div class="avg">hoy gastas: <span class="num">${fmt(r.avg)}</span></div></div>
         <label class="amt"><span>$</span><input type="number" inputmode="numeric" id="b-${i}" value="${r.plan}" aria-label="${esc(r.n)} en 2027"></label>
         <div class="bar"><i style="width:${(r.plan/max*100).toFixed(1)}%"></i><em style="left:${(r.avg/max*100).toFixed(1)}%"></em></div>
         <span class="diff ${diff < 0 ? 'pill good' : diff > 0 ? 'pill warn' : 'pill'}">${diff === 0 ? 'igual que hoy' : (diff < 0 ? '−' : '+') + fmt(Math.abs(diff)) + ' al mes'}</span>`;
@@ -614,7 +615,7 @@ a{color:var(--accent)}
     const w = $('#libre-warn');
     if (colchon < 0) { w.hidden = false; w.innerHTML = `<span class="pill warn">Te faltan ${fmt(-colchon)}</span> para cubrir tu reto y tu fondo. Baja alguna categoría o cambia a un reto más chico, sin culpa.`; } else w.hidden = true;
     $('#metas-sub').textContent = `Tu reto de ${fmt(LEVELS[e.nivel||2])} alimenta estas metas: ${fmt(reto)} al mes repartidos.`;
-    $('#pres-sub').textContent = e.presupuesto && e.presupuesto.length ? 'Armado con tus estados de cuenta. Toca un monto para ajustarlo.' : 'Se arma en la pestaña Guía con tus estados de cuenta.';
+    $('#pres-sub').textContent = e.presupuesto && e.presupuesto.length ? 'Armado con lo que le contaste a tu guía. Toca un monto para ajustarlo.' : 'Se arma platicando en la pestaña Guía.';
   }
 
   /* ---------- reto ---------- */
